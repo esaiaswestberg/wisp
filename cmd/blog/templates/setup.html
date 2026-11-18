@@ -1,0 +1,22 @@
+{{ define "setup.html" }}{{ template "head" . }}
+<section class="form-page">
+  <p class="eyebrow">First run</p>
+  <h1>Set up {{ .Site.Name }}</h1>
+  <p>Create the first account and choose the site's identity. You can change these settings later.</p>
+  {{ if .Error }}<p class="error">{{ .Error }}</p>{{ end }}
+  <form method="post">
+    <h2>Site</h2>
+    <label>Site name <input name="site_name" value="{{ index .Form "site_name" }}" required></label>
+    <label>Description <input name="site_description" value="{{ index .Form "site_description" }}"></label>
+    <label>Author <input name="site_author" value="{{ index .Form "site_author" }}"></label>
+    <label>Language <input name="language" value="{{ index .Form "language" }}" required></label>
+    <label>Base URL <input type="url" name="base_url" value="{{ index .Form "base_url" }}" required></label>
+    <h2>First account</h2>
+    <label>Name <input name="name" value="{{ index .Form "name" }}" required></label>
+    <label>Email <input type="email" name="email" value="{{ index .Form "email" }}" required></label>
+    <label>Password <input type="password" name="password" minlength="12" required></label>
+    <label>Confirm password <input type="password" name="password_confirm" minlength="12" required></label>
+    <button type="submit">Create Wisp</button>
+  </form>
+</section>
+{{ template "foot" . }}{{ end }}

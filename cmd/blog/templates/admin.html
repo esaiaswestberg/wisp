@@ -1,0 +1,8 @@
+{{ define "admin.html" }}{{ template "head" . }}
+<section>
+  <p class="eyebrow">Admin</p>
+  <h1>Welcome, {{ .User.Name }}</h1>
+  <p><a href="/admin/settings">Site settings</a> · <a href="/admin/users">Invite users</a> · <a href="/admin/password">Change password</a></p>
+  <form method="post" action="/logout"><input type="hidden" name="csrf" value="{{ .CSRF }}"><button type="submit">Log out</button></form>
+</section>
+{{ template "foot" . }}{{ end }}

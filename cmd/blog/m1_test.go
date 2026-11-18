@@ -5,10 +5,12 @@ import (
 	"html/template"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
 
+	"wisp/internal/auth"
 	"wisp/internal/db"
 )
 
@@ -20,11 +22,16 @@ func testApp(t *testing.T) *app {
 	}
 	t.Cleanup(func() { database.Close() })
 	tmpl := template.Must(template.ParseFS(assets, "templates/*.html"))
+	service := &auth.Service{DB: database, Now: func() time.Time { return time.Date(2026, 11, 18, 23, 0, 0, 0, time.UTC) }}
+	if _, err := service.CreateUser("test@example.com", "Test", "a sufficiently long password"); err != nil {
+		t.Fatal(err)
+	}
 	return &app{
 		db:    database,
 		tmpl:  tmpl,
 		clock: func() time.Time { return time.Date(2026, 11, 18, 23, 0, 0, 0, time.UTC) },
 		site:  site{Name: "Wisp", Description: "A small, fast blog.", Language: "en", PerPage: 10},
+		auth:  service,
 	}
 }
 
@@ -58,5 +65,30 @@ func TestPublicRoutes(t *testing.T) {
 				t.Fatalf("response does not contain %q", tc.body)
 			}
 		})
+	}
+}
+
+func TestEditorSaveSanitizesHTML(t *testing.T) {
+	application := testApp(t)
+	form := url.Values{
+		"title":     {"Unsafe post"},
+		"body_html": {`<p>Hello</p><script>alert(1)</script><img src="https://example.com/a.png" onerror="bad()">`},
+		"status":    {"draft"},
+	}
+	request := httptest.NewRequest(http.MethodPost, "/admin/posts/new", strings.NewReader(form.Encode()))
+	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	id, err := application.saveEditorPost(request, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var body string
+	if err := application.db.QueryRow(`SELECT body_html FROM posts WHERE id = ?`, id).Scan(&body); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(body, "script") || strings.Contains(body, "onerror") {
+		t.Fatalf("unsafe HTML survived sanitization: %s", body)
+	}
+	if !strings.Contains(body, `src="https://example.com/a.png"`) {
+		t.Fatalf("safe image was removed: %s", body)
 	}
 }

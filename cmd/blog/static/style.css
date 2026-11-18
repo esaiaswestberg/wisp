@@ -22,3 +22,21 @@ h2 { margin: .2rem 0; }
 .pagination { display: flex; justify-content: space-between; gap: 1rem; padding: 2rem 0; }
 .tag-list { padding-left: 1.2rem; }
 .site-footer { border-top: 1px solid var(--line); color: var(--muted); font-size: .85rem; margin-top: 4rem; padding: 1.5rem 0 3rem; }
+.form-page { max-width: 34rem; }
+.form-page.narrow { max-width: 24rem; }
+form { display: grid; gap: 1rem; }
+label { display: grid; gap: .3rem; }
+input { border: 1px solid var(--line); border-radius: .25rem; background: var(--bg); color: var(--fg); font: inherit; padding: .6rem .7rem; }
+button { border: 0; border-radius: .25rem; background: var(--link); color: var(--bg); cursor: pointer; font: inherit; font-weight: 700; padding: .65rem 1rem; }
+.button { background: var(--link); border-radius: .25rem; color: var(--bg); font-weight: 700; padding: .65rem 1rem; text-decoration: none; }
+.error { border-left: .25rem solid #d64c4c; padding-left: .75rem; }
+.invite-link { display: block; overflow-wrap: anywhere; }
+.admin-heading { align-items: center; display: flex; justify-content: space-between; }
+.admin-row { align-items: center; border-top: 1px solid var(--line); display: flex; justify-content: space-between; padding: 1rem 0; }
+.admin-row h2 { margin: 0; }
+.toolbar { display: flex; flex-wrap: wrap; gap: .35rem; }
+.toolbar button { background: color-mix(in srgb, var(--fg) 12%, transparent); color: var(--fg); padding: .35rem .6rem; }
+.editor { border: 1px solid var(--line); border-radius: .25rem; min-height: 20rem; padding: 1rem; }
+.editor:focus { outline: 2px solid var(--link); }
+.editor-actions { align-items: center; display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 1.5rem; }
+.editor-actions form { display: inline; }

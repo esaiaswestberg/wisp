@@ -1,0 +1,12 @@
+{{ define "admin-posts.html" }}{{ template "head" . }}
+<section>
+  <p class="eyebrow"><a href="/admin">Admin</a></p>
+  <div class="admin-heading"><h1>Posts</h1><a class="button" href="/admin/posts/new">New post</a></div>
+  {{ range .Posts }}
+    <article class="admin-row">
+      <div><h2><a href="/admin/posts/{{ .ID }}/edit">{{ .Title }}</a></h2><p class="date">{{ .Status }} · updated {{ .UpdatedAt }}</p></div>
+      <a href="/posts/{{ .Slug }}">View</a>
+    </article>
+  {{ else }}<p>No posts yet.</p>{{ end }}
+</section>
+{{ template "foot" . }}{{ end }}

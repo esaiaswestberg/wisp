@@ -1,0 +1,16 @@
+{{ define "users.html" }}{{ template "head" . }}
+<section class="form-page">
+  <p class="eyebrow"><a href="/admin">Admin</a></p>
+  <h1>Invite a user</h1>
+  {{ if .Error }}<p class="error">{{ .Error }}</p>{{ end }}
+  {{ if .InviteURL }}
+    <p>Share this one-time invite link. It expires in 7 days.</p>
+    <p><code class="invite-link">{{ .InviteURL }}</code></p>
+  {{ end }}
+  <form method="post">
+    <input type="hidden" name="csrf" value="{{ .CSRF }}">
+    <label>Email <input type="email" name="email" required></label>
+    <button type="submit">Create invite</button>
+  </form>
+</section>
+{{ template "foot" . }}{{ end }}

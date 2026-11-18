@@ -1,0 +1,14 @@
+{{ define "invite.html" }}{{ template "head" . }}
+<section class="form-page narrow">
+  <p class="eyebrow">Invitation</p>
+  <h1>Join {{ .Site.Name }}</h1>
+  {{ if .Error }}<p class="error">{{ .Error }}</p>{{ end }}
+  <form method="post">
+    <label>Name <input name="name" value="{{ index .Form "name" }}" required></label>
+    <label>Email <input type="email" name="email" value="{{ index .Form "email" }}" required></label>
+    <label>Password <input type="password" name="password" minlength="12" required></label>
+    <label>Confirm password <input type="password" name="password_confirm" minlength="12" required></label>
+    <button type="submit">Create account</button>
+  </form>
+</section>
+{{ template "foot" . }}{{ end }}

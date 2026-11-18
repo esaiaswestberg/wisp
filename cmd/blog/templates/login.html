@@ -1,0 +1,11 @@
+{{ define "login.html" }}{{ template "head" . }}
+<section class="form-page narrow">
+  <h1>Log in</h1>
+  {{ if .Error }}<p class="error">{{ .Error }}</p>{{ end }}
+  <form method="post">
+    <label>Email <input type="email" name="email" required autofocus></label>
+    <label>Password <input type="password" name="password" required></label>
+    <button type="submit">Log in</button>
+  </form>
+</section>
+{{ template "foot" . }}{{ end }}
