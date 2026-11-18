@@ -1,14 +1,19 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ .Title }}</title>
-  </head>
-  <body>
-    <main>
-      <h1>{{ .Title }}</h1>
-      <p>M0 is working.</p>
-    </main>
-  </body>
-</html>
+{{ define "index.html" }}{{ template "head" . }}
+  {{ if .Tag.Name }}<p class="eyebrow">Tag</p><h1>{{ .Tag.Name }}</h1>{{ else }}<h1>Latest posts</h1>{{ end }}
+  {{ if .Posts }}
+    <div class="post-list">
+    {{ range .Posts }}
+      <article class="post-card">
+        <p class="date">{{ .PublishedAt }}</p>
+        <h2><a href="/posts/{{ .Slug }}">{{ .Title }}</a></h2>
+        {{ if .Summary }}<p>{{ .Summary }}</p>{{ end }}
+      </article>
+    {{ end }}
+    </div>
+    <nav class="pagination" aria-label="Pagination">
+      {{ if .HasPrev }}<a href="{{ .PrevURL }}">← Newer</a>{{ end }}
+      <span>Page {{ .Page }} of {{ .Pages }}</span>
+      {{ if .HasNext }}<a href="{{ .NextURL }}">Older →</a>{{ end }}
+    </nav>
+  {{ else }}<p>No posts yet.</p>{{ end }}
+{{ template "foot" . }}{{ end }}

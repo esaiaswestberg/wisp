@@ -1,0 +1,23 @@
+{{ define "head" }}
+<!doctype html>
+<html lang="{{ .Site.Language }}">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="{{ .Site.Description }}">
+    <title>{{ if .Post.Title }}{{ .Post.Title }} · {{ end }}{{ .Site.Name }}</title>
+    <link rel="stylesheet" href="/static/style.css">
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="/">{{ .Site.Name }}</a>
+      <nav><a href="/tags">Tags</a></nav>
+    </header>
+    <main class="container">
+{{ end }}
+{{ define "foot" }}
+    </main>
+    <footer class="site-footer">Powered by Wisp</footer>
+  </body>
+</html>
+{{ end }}

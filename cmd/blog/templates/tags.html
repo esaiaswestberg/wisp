@@ -1,0 +1,6 @@
+{{ define "tags.html" }}{{ template "head" . }}
+  <h1>Tags</h1>
+  <ul class="tag-list">
+  {{ range .Tags }}<li><a href="/tags/{{ .Slug }}">{{ .Name }}</a></li>{{ else }}<li>No tags yet.</li>{{ end }}
+  </ul>
+{{ template "foot" . }}{{ end }}

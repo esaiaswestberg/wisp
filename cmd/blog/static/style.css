@@ -1,0 +1,24 @@
+:root { color-scheme: light dark; --bg: #101114; --fg: #e8e8ea; --muted: #9b9ca5; --line: #303139; --link: #9cc7ff; }
+@media (prefers-color-scheme: light) { :root { --bg: #fff; --fg: #202124; --muted: #686a73; --line: #dedee3; --link: #0759b8; } }
+* { box-sizing: border-box; }
+body { max-width: 48rem; margin: 0 auto; padding: 0 1.25rem; background: var(--bg); color: var(--fg); font: 1.05rem/1.65 system-ui, sans-serif; }
+a { color: var(--link); }
+.site-header { display: flex; justify-content: space-between; align-items: baseline; padding: 2rem 0 4rem; }
+.brand { color: var(--fg); font-size: 1.3rem; font-weight: 700; text-decoration: none; }
+.container { min-height: 60vh; }
+h1, h2 { line-height: 1.2; }
+h1 { margin-bottom: 2rem; }
+h2 { margin: .2rem 0; }
+.post-list { border-top: 1px solid var(--line); }
+.post-card { border-bottom: 1px solid var(--line); padding: 1.25rem 0; }
+.post-card p { margin: .35rem 0 0; }
+.date, .eyebrow { color: var(--muted); font-size: .85rem; margin: 0; }
+.summary { color: var(--muted); font-size: 1.15rem; }
+.post-body { margin-top: 2rem; }
+.post-body img { max-width: 100%; height: auto; }
+.post-body pre, .post-body code { background: color-mix(in srgb, var(--fg) 10%, transparent); border-radius: .25rem; }
+.post-body pre { overflow-x: auto; padding: 1rem; }
+.post-body code { padding: .1rem .25rem; }
+.pagination { display: flex; justify-content: space-between; gap: 1rem; padding: 2rem 0; }
+.tag-list { padding-left: 1.2rem; }
+.site-footer { border-top: 1px solid var(--line); color: var(--muted); font-size: .85rem; margin-top: 4rem; padding: 1.5rem 0 3rem; }

@@ -1,0 +1,8 @@
+{{ define "post.html" }}{{ template "head" . }}
+  <article class="post">
+    <p class="date">{{ .Post.PublishedAt }}</p>
+    <h1>{{ .Post.Title }}</h1>
+    {{ if .Post.Summary }}<p class="summary">{{ .Post.Summary }}</p>{{ end }}
+    <div class="post-body">{{ .Post.BodyHTML }}</div>
+  </article>
+{{ template "foot" . }}{{ end }}
