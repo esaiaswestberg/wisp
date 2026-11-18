@@ -17,6 +17,8 @@
       <button type="button" data-command="insertUnorderedList">List</button>
       <button type="button" data-command="formatBlock" data-value="pre">Code</button>
       <button type="button" data-command="createLink">Link</button>
+      <button type="button" id="image-button">Image</button>
+      <input type="file" id="image-input" accept="image/jpeg,image/png,image/webp,image/gif,image/avif" hidden>
     </div>
     <div id="editor" class="editor" contenteditable="true">{{ .Post.BodyHTML }}</div>
     <textarea name="body_html" id="body-html" hidden></textarea>

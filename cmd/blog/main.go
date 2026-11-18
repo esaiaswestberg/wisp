@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"embed"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"log"
@@ -19,6 +20,7 @@ import (
 	"wisp/internal/auth"
 	"wisp/internal/db"
 	"wisp/internal/posts"
+	"wisp/internal/uploads"
 )
 
 //go:embed templates/*.html static/*
@@ -92,6 +94,7 @@ type app struct {
 	site          site
 	clock         func() time.Time
 	auth          *auth.Service
+	uploader      *uploads.Service
 	loginMu       sync.Mutex
 	loginFailures map[string][]time.Time
 }
@@ -115,6 +118,10 @@ func main() {
 	}
 	application.auth = &auth.Service{DB: database, Now: time.Now, SecureCookies: strings.HasPrefix(application.site.BaseURL, "https:")}
 	application.loginFailures = make(map[string][]time.Time)
+	application.uploader, err = uploads.NewFromEnv()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/static/style.css", application.style)
@@ -197,6 +204,10 @@ func (a *app) route(w http.ResponseWriter, r *http.Request) {
 	}
 	if r.URL.Path == "/admin/password" {
 		a.password(w, r)
+		return
+	}
+	if r.URL.Path == "/admin/uploads/presign" {
+		a.presignUpload(w, r)
 		return
 	}
 	if r.URL.Path == "/admin/posts" {
@@ -800,6 +811,36 @@ func (a *app) editorScript(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "application/javascript; charset=utf-8")
 	data, _ := assets.ReadFile("static/editor.js")
 	_, _ = w.Write(data)
+}
+
+func (a *app) presignUpload(w http.ResponseWriter, r *http.Request) {
+	session, ok := a.currentUser(w, r)
+	if !ok {
+		return
+	}
+	if a.uploader == nil {
+		http.Error(w, "uploads are not configured", http.StatusNotImplemented)
+		return
+	}
+	if r.Method != http.MethodPost || !auth.ValidateCSRF(session, r.Header.Get("X-CSRF-Token")) {
+		http.Error(w, "invalid form token", http.StatusForbidden)
+		return
+	}
+	var input struct {
+		Filename    string `json:"filename"`
+		ContentType string `json:"content_type"`
+	}
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 4096)).Decode(&input); err != nil {
+		http.Error(w, "invalid request", http.StatusBadRequest)
+		return
+	}
+	result, err := a.uploader.Presign(r.Context(), input.Filename, input.ContentType)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(result)
 }
 
 func (a *app) render(w http.ResponseWriter, name string, data any) {
