@@ -1,0 +1,30 @@
+# Build output
+/blog
+/bin/
+/dist/
+
+# Local data
+/data/
+*.db
+*.db-shm
+*.db-wal
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Go tooling
+*.test
+*.out
+coverage.html
+
+# Node tooling used for the admin bundle
+node_modules/
+npm-debug.log*
+
+# Editor and OS files
+.DS_Store
+.idea/
+.vscode/
+*.swp
