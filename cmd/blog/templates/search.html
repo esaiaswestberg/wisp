@@ -1,0 +1,20 @@
+{{ define "search.html" }}{{ template "head" . }}
+<section>
+  <h1>Search</h1>
+  <form class="search-form" method="get" action="/search">
+    <label class="sr-only" for="search-query">Search</label>
+    <input id="search-query" name="q" value="{{ .Query }}" placeholder="Search posts" autofocus>
+    <button type="submit">Search</button>
+  </form>
+  {{ if .Query }}
+    <p class="eyebrow">{{ len .Results }} results for “{{ .Query }}”</p>
+    {{ range .Results }}
+      <article class="post-card">
+        <h2><a href="/posts/{{ .Slug }}">{{ .Title }}</a></h2>
+        {{ if .Summary }}<p>{{ .Summary }}</p>{{ end }}
+        {{ if .Snippet }}<p class="snippet">{{ .Snippet }}</p>{{ end }}
+      </article>
+    {{ else }}<p>No matching posts.</p>{{ end }}
+  {{ end }}
+</section>
+{{ template "foot" . }}{{ end }}

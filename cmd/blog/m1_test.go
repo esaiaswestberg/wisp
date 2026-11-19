@@ -30,7 +30,7 @@ func testApp(t *testing.T) *app {
 		db:    database,
 		tmpl:  tmpl,
 		clock: func() time.Time { return time.Date(2026, 11, 18, 23, 0, 0, 0, time.UTC) },
-		site:  site{Name: "Wisp", Description: "A small, fast blog.", Language: "en", PerPage: 10},
+		site:  site{Name: "Wisp", Description: "A small, fast blog.", Language: "en", BaseURL: "https://example.com", FeedSize: 20, PerPage: 10},
 		auth:  service,
 	}
 }
@@ -50,6 +50,10 @@ func TestPublicRoutes(t *testing.T) {
 		{"/posts/hello-from-wisp", http.StatusOK, "Wisp is a small blog system"},
 		{"/tags", http.StatusOK, "Go"},
 		{"/tags/go", http.StatusOK, "Hello from Wisp"},
+		{"/search?q=SQLite", http.StatusOK, "Hello from Wisp"},
+		{"/feed.xml", http.StatusOK, "Hello from Wisp"},
+		{"/sitemap.xml", http.StatusOK, "https://example.com/posts/hello-from-wisp"},
+		{"/robots.txt", http.StatusOK, "Sitemap: https://example.com/sitemap.xml"},
 		{"/posts/missing", http.StatusNotFound, ""},
 		{"/draft", http.StatusNotFound, ""},
 	}

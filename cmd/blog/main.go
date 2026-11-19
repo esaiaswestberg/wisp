@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"embed"
 	"encoding/json"
+	"encoding/xml"
 	"fmt"
 	"html/template"
 	"log"
@@ -32,6 +33,8 @@ type site struct {
 	Language    string
 	PerPage     int
 	BaseURL     string
+	Author      string
+	FeedSize    int
 }
 
 type post struct {
@@ -66,6 +69,15 @@ type pageData struct {
 	Error      string
 	Form       map[string]string
 	InviteURL  string
+	Query      string
+	Results    []searchResult
+}
+
+type searchResult struct {
+	Slug    string
+	Title   string
+	Summary string
+	Snippet string
 }
 
 type editorData struct {
@@ -149,9 +161,12 @@ func (a *app) loadSite(ctx context.Context) error {
 		}
 		values[key] = value
 	}
-	a.site = site{Name: values["site_name"], Description: values["site_description"], Language: values["language"], BaseURL: values["base_url"], PerPage: 10}
+	a.site = site{Name: values["site_name"], Description: values["site_description"], Author: values["site_author"], Language: values["language"], BaseURL: values["base_url"], PerPage: 10, FeedSize: 20}
 	if n, err := strconv.Atoi(values["posts_per_page"]); err == nil && n > 0 && n <= 50 {
 		a.site.PerPage = n
+	}
+	if n, err := strconv.Atoi(values["feed_size"]); err == nil && n > 0 && n <= 100 {
+		a.site.FeedSize = n
 	}
 	return rows.Err()
 }
@@ -180,6 +195,22 @@ func (a *app) route(w http.ResponseWriter, r *http.Request) {
 	}
 	if r.URL.Path == "/login" {
 		a.login(w, r)
+		return
+	}
+	if r.URL.Path == "/search" {
+		a.search(w, r)
+		return
+	}
+	if r.URL.Path == "/feed.xml" {
+		a.feed(w, r)
+		return
+	}
+	if r.URL.Path == "/sitemap.xml" {
+		a.sitemap(w, r)
+		return
+	}
+	if r.URL.Path == "/robots.txt" {
+		a.robots(w, r)
 		return
 	}
 	if strings.HasPrefix(r.URL.Path, "/invite/") {
@@ -841,6 +872,124 @@ func (a *app) presignUpload(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(result)
+}
+
+func (a *app) search(w http.ResponseWriter, r *http.Request) {
+	query := strings.TrimSpace(r.URL.Query().Get("q"))
+	data := pageData{Site: a.site, Query: query}
+	if query != "" {
+		terms := strings.Fields(query)
+		quoted := make([]string, 0, len(terms))
+		for _, term := range terms {
+			term = strings.ReplaceAll(term, `"`, "")
+			if term != "" {
+				quoted = append(quoted, `"`+term+`"`)
+			}
+		}
+		if len(quoted) > 0 {
+			rows, err := a.db.Query(`SELECT p.slug, p.title, p.summary, snippet(posts_fts, 1, '', '', '...', 24) FROM posts_fts JOIN posts p ON p.id = posts_fts.rowid WHERE posts_fts MATCH ? AND p.status = 'published' AND p.published_at <= ? ORDER BY bm25(posts_fts, 10.0, 1.0, 2.0), p.published_at DESC LIMIT 20`, strings.Join(quoted, " "), a.clock().UTC().Format(time.RFC3339))
+			if err != nil {
+				http.Error(w, "search error", http.StatusInternalServerError)
+				return
+			}
+			defer rows.Close()
+			for rows.Next() {
+				var result searchResult
+				if err := rows.Scan(&result.Slug, &result.Title, &result.Summary, &result.Snippet); err != nil {
+					http.Error(w, "search error", http.StatusInternalServerError)
+					return
+				}
+				data.Results = append(data.Results, result)
+			}
+		}
+	}
+	a.render(w, "search.html", data)
+}
+
+type atomFeed struct {
+	XMLName  xml.Name    `xml:"feed"`
+	XMLNS    string      `xml:"xmlns,attr"`
+	ID       string      `xml:"id"`
+	Title    string      `xml:"title"`
+	Subtitle string      `xml:"subtitle,omitempty"`
+	Updated  string      `xml:"updated"`
+	Link     atomLink    `xml:"link"`
+	Entries  []atomEntry `xml:"entry"`
+}
+
+type atomLink struct {
+	Href string `xml:"href,attr"`
+}
+type atomEntry struct {
+	ID      string   `xml:"id"`
+	Title   string   `xml:"title"`
+	Link    atomLink `xml:"link"`
+	Updated string   `xml:"updated"`
+	Summary string   `xml:"summary,omitempty"`
+}
+
+func (a *app) feed(w http.ResponseWriter, _ *http.Request) {
+	rows, err := a.db.Query(`SELECT slug, title, summary, published_at FROM posts WHERE status = 'published' AND published_at <= ? ORDER BY published_at DESC LIMIT ?`, a.clock().UTC().Format(time.RFC3339), a.site.FeedSize)
+	if err != nil {
+		http.Error(w, "feed error", http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+	feed := atomFeed{XMLNS: "http://www.w3.org/2005/Atom", ID: strings.TrimRight(a.site.BaseURL, "/") + "/", Title: a.site.Name, Subtitle: a.site.Description, Updated: a.clock().UTC().Format(time.RFC3339), Link: atomLink{Href: strings.TrimRight(a.site.BaseURL, "/") + "/"}}
+	for rows.Next() {
+		var slug, title, summary, published string
+		if err := rows.Scan(&slug, &title, &summary, &published); err != nil {
+			http.Error(w, "feed error", http.StatusInternalServerError)
+			return
+		}
+		feed.Entries = append(feed.Entries, atomEntry{ID: strings.TrimRight(a.site.BaseURL, "/") + "/posts/" + slug, Title: title, Link: atomLink{Href: strings.TrimRight(a.site.BaseURL, "/") + "/posts/" + slug}, Updated: feedTime(published), Summary: summary})
+	}
+	w.Header().Set("Content-Type", "application/atom+xml; charset=utf-8")
+	_, _ = w.Write([]byte(xml.Header))
+	_ = xml.NewEncoder(w).Encode(feed)
+}
+
+type sitemap struct {
+	XMLName xml.Name     `xml:"urlset"`
+	XMLNS   string       `xml:"xmlns,attr"`
+	URLs    []sitemapURL `xml:"url"`
+}
+type sitemapURL struct {
+	Loc     string `xml:"loc"`
+	LastMod string `xml:"lastmod,omitempty"`
+}
+
+func (a *app) sitemap(w http.ResponseWriter, _ *http.Request) {
+	base := strings.TrimRight(a.site.BaseURL, "/")
+	result := sitemap{XMLNS: "http://www.sitemaps.org/schemas/sitemap/0.9", URLs: []sitemapURL{{Loc: base + "/"}, {Loc: base + "/tags"}}}
+	rows, err := a.db.Query(`SELECT slug, updated_at FROM posts WHERE status = 'published' AND published_at <= ?`, a.clock().UTC().Format(time.RFC3339))
+	if err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var slug, updated string
+			if rows.Scan(&slug, &updated) == nil {
+				result.URLs = append(result.URLs, sitemapURL{Loc: base + "/posts/" + slug, LastMod: feedTime(updated)})
+			}
+		}
+	}
+	w.Header().Set("Content-Type", "application/xml; charset=utf-8")
+	_, _ = w.Write([]byte(xml.Header))
+	_ = xml.NewEncoder(w).Encode(result)
+}
+
+func (a *app) robots(w http.ResponseWriter, _ *http.Request) {
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	_, _ = fmt.Fprintf(w, "User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /login\nSitemap: %s/sitemap.xml\n", strings.TrimRight(a.site.BaseURL, "/"))
+}
+
+func feedTime(value string) string {
+	if parsed, err := time.Parse(time.RFC3339, value); err == nil {
+		return parsed.UTC().Format(time.RFC3339)
+	}
+	if parsed, err := time.Parse("2006-01-02 15:04:05", value); err == nil {
+		return parsed.UTC().Format(time.RFC3339)
+	}
+	return value
 }
 
 func (a *app) render(w http.ResponseWriter, name string, data any) {
