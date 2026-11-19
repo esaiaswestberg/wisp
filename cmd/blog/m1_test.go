@@ -22,14 +22,15 @@ func testApp(t *testing.T) *app {
 	}
 	t.Cleanup(func() { database.Close() })
 	tmpl := template.Must(template.ParseFS(assets, "templates/*.html"))
-	service := &auth.Service{DB: database, Now: func() time.Time { return time.Date(2026, 11, 18, 23, 0, 0, 0, time.UTC) }}
+	testNow := time.Now().Add(time.Hour)
+	service := &auth.Service{DB: database, Now: func() time.Time { return testNow }}
 	if _, err := service.CreateUser("test@example.com", "Test", "a sufficiently long password"); err != nil {
 		t.Fatal(err)
 	}
 	return &app{
 		db:    database,
 		tmpl:  tmpl,
-		clock: func() time.Time { return time.Date(2026, 11, 18, 23, 0, 0, 0, time.UTC) },
+		clock: func() time.Time { return testNow },
 		site:  site{Name: "Wisp", Description: "A small, fast blog.", Language: "en", BaseURL: "https://example.com", FeedSize: 20, PerPage: 10},
 		auth:  service,
 	}

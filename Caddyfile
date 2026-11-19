@@ -1,0 +1,4 @@
+{$BLOG_DOMAIN:localhost} {
+	reverse_proxy wisp:8080
+	encode gzip
+}

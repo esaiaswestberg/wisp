@@ -1,0 +1,9 @@
+.git
+.gitignore
+data
+*.db
+*.db-shm
+*.db-wal
+node_modules
+blog
+coverage.html

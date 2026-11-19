@@ -12,6 +12,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/signal"
 	"path"
 	"strconv"
 	"strings"
@@ -144,7 +145,18 @@ func main() {
 		addr = ":8080"
 	}
 	log.Printf("listening on %s", addr)
-	log.Fatal(http.ListenAndServe(addr, mux))
+	server := &http.Server{Addr: addr, Handler: securityHeaders(mux), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 30 * time.Second, IdleTimeout: 60 * time.Second}
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt)
+	go func() {
+		<-stop
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		_ = server.Shutdown(ctx)
+	}()
+	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		log.Fatal(err)
+	}
 }
 
 func (a *app) loadSite(ctx context.Context) error {
@@ -172,6 +184,15 @@ func (a *app) loadSite(ctx context.Context) error {
 }
 
 func (a *app) route(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path == "/healthz" {
+		if err := a.db.PingContext(r.Context()); err != nil {
+			http.Error(w, "database unavailable", http.StatusServiceUnavailable)
+			return
+		}
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		_, _ = w.Write([]byte("ok\n"))
+		return
+	}
 	hasUsers, err := a.auth.HasUsers()
 	if err != nil {
 		http.Error(w, "database error", http.StatusInternalServerError)
@@ -299,6 +320,16 @@ func (a *app) route(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.NotFound(w, r)
+}
+
+func securityHeaders(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Security-Policy", "default-src 'self'; img-src 'self' https:; script-src 'self'; style-src 'self'; connect-src 'self' https:; form-action 'self'; frame-ancestors 'none'; base-uri 'none'")
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Header().Set("X-Frame-Options", "DENY")
+		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
+		next.ServeHTTP(w, r)
+	})
 }
 
 func (a *app) setup(w http.ResponseWriter, r *http.Request) {
